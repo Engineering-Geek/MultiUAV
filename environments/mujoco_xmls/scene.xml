@@ -1,0 +1,65 @@
+<mujoco model="UAV scene">
+
+  <!-- Simulation options including timestep, gravity, solver iterations, integration method, air density, and air viscosity -->
+  <option gravity="0 0 -9.81" iterations="50" integrator="Euler" density="1.225" viscosity="1.8e-5"/>
+
+  <!-- Compiler options including inertia from geometry and asset directory -->
+  <compiler inertiafromgeom="true" assetdir="assets"/>
+
+  <!-- Asset definitions for mujoco_xmls components -->
+  <asset>
+    <!-- Mesh for the mujoco_xmls body -->
+    <mesh name="frame" file="frame.stl"/>
+    <!-- Mesh for clockwise rotating propellers -->
+    <mesh name="cwprop" file="cwprop.stl"/>
+    <!-- Mesh for counter-clockwise rotating propellers -->
+    <mesh name="ccwprop" file="ccwprop.stl"/>
+  </asset>
+
+  <!-- Default properties for joints, geometries, and motors -->
+  <default>
+    <joint damping="0.01"/>
+    <!-- Unique class names for visual and collision -->
+    <default class="visual">
+      <geom contype="0" conaffinity="0" group="1"/>
+    </default>
+    <default class="collision">
+      <geom contype="1" conaffinity="1" group="2"/>
+    </default>
+    <!-- Geometric properties: friction, density, and collision margin -->
+    <geom friction="1 0.5 0.5" density="500"/>
+
+    <motor ctrlrange="0.0 1.0" ctrllimited="true"/>
+    <!-- Unique class names for motors, note that the z-axis of the propellers is flipped -->
+    <default class="cw">
+      <motor gear="0 0 -10 0 0 1"/>
+    </default>
+    <default class="ccw">
+      <motor gear="0 0 -10 0 0 -1"/>
+    </default>
+  </default>
+
+  <!-- Drones will be under 'files' -->
+  {{files}}
+
+  <statistic center="0 0 0.1" extent="0.6" meansize=".05"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <global azimuth="-20" elevation="-20" ellipsoidinertia="true"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+      markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.01"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 5" dir="0 0 -1" directional="true"/>
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane" contype="1" conaffinity="1"/>
+    {{objects}}
+  </worldbody>
+</mujoco>

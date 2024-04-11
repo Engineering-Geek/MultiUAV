@@ -1,0 +1,50 @@
+<mujoco model="MicroDrone-B">
+
+  <worldbody>
+    <body name="drone_{{index}}" pos="{{x}} {{y}} {{z}}">
+      <freejoint name="drone_{{index}}"/>
+      <site name="drone_{{index}}" size="0.001" rgba="{{drone_rgba}}" group="1"/>
+      <geom type="mesh" rgba="{{drone_rgba}}" mesh="frame" class="visual" quat="0.707 0 0 0.707"/>
+      <geom type="box" size="0.1 0.1 0.01" rgba="1 1 1 .2" class="collision"/>
+      <body name="cw_back_right_{{index}}" pos="-0.05 0.05 -0.01" quat="0 1 0 0">
+        <inertial pos="1.2208e-11 -7.25704e-12 -0.00580526" quat="0.5 0.5 -0.5 0.5" mass="0.00456088" diaginertia="1.32289e-06 6.917e-07 6.917e-07"/>
+        <site name="cw_back_right_{{index}}" pos="0 0 -0.01" size="0.001" rgba="{{prop_rgba}}" group="2"/>
+        <joint name="cw_back_right_{{index}}" axis="0 0 1" limited="false" group="2"/>
+        <geom name="cw_back_right_{{index}}" pos="0 0 -0.005" quat="0 1 0 0" type="mesh" rgba="{{prop_rgba}}" mesh="cwprop" class="visual"/>
+      </body>
+      <body name="cw_front_left_{{index}}" pos="0.05 -0.05 -0.01" quat="0 1 0 0">
+        <inertial pos="1.2208e-11 -7.25704e-12 -0.00580526" quat="0.5 0.5 -0.5 0.5" mass="0.00456088" diaginertia="1.32289e-06 6.917e-07 6.917e-07"/>
+        <site name="cw_front_left_{{index}}" pos="0 0 -0.01" size="0.001" rgba="{{prop_rgba}}" group="2"/>
+        <joint name="cw_front_left_{{index}}" axis="0 0 1" limited="false" group="2"/>
+        <geom name="cw_front_left_{{index}}" pos="0 0 -0.005" quat="0 1 0 0" type="mesh" rgba="{{prop_rgba}}" mesh="cwprop" class="visual"/>
+      </body>
+      <body name="ccw_front_right_{{index}}" pos="0.05 0.05 -0.01" quat="0 1 0 0">
+        <inertial pos="-5.3871e-10 1.09015e-09 -0.00580545" quat="0.5 0.5 -0.5 0.5" mass="0.00456055" diaginertia="1.32284e-06 6.91671e-07 6.91671e-07"/>
+        <site name="ccw_front_right_{{index}}" pos="0 0 -0.01" size="0.001" rgba="{{prop_rgba}}" group="2"/>
+        <joint name="ccw_front_right_{{index}}" axis="0 0 1" limited="false" group="2"/>
+        <geom name="ccw_front_right_{{index}}" pos="0 0 -0.005" quat="0 1 0 0" type="mesh" rgba="{{prop_rgba}}" mesh="ccwprop" class="visual"/>
+      </body>
+      <body name="ccw_back_left_{{index}}" pos="-0.05 -0.05 -0.01" quat="0 1 0 0">
+        <inertial pos="-5.3871e-10 1.09015e-09 -0.00580545" quat="0.5 0.5 -0.5 0.5" mass="0.00456055" diaginertia="1.32284e-06 6.91671e-07 6.91671e-07"/>
+        <site name="ccw_back_left_{{index}}" pos="0 0 -0.01" size="0.001" rgba="{{prop_rgba}}" group="2"/>
+        <joint name="ccw_back_left_{{index}}" axis="0 0 1" limited="false" group="2"/>
+        <geom name="ccw_back_left_{{index}}" pos="0 0 -0.005" quat="0 1 0 0" type="mesh" rgba="{{prop_rgba}}" mesh="ccwprop" class="visual"/>
+      </body>
+
+      <camera name="camera_{{index}}_left" pos="0.077 .01 0" fovy="{{fovy}}" xyaxes="0 -1 0 0 0 1"/>
+      <camera name="camera_{{index}}_right" pos="0.077 -.01 0" fovy="{{fovy}}" xyaxes="0 -1 0 0 0 1"/>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <motor name="back_right_{{index}}" site="cw_back_right_{{index}}" class="cw"/>
+    <motor name="front_left_{{index}}" site="cw_front_left_{{index}}" class="cw"/>
+    <motor name="front_right_{{index}}" site="ccw_front_right_{{index}}" class="ccw"/>
+    <motor name="back_left_{{index}}" site="ccw_back_left_{{index}}" class="ccw"/>
+  </actuator>
+
+  <sensor>
+    <gyro name="gyro_{{index}}" site="drone_{{index}}" noise="{{gyro_noise}}" cutoff="{{gyro_cutoff}}"/>
+    <accelerometer name="accel_{{index}}" site="drone_{{index}}" noise="{{accel_noise}}" cutoff="{{accel_cutoff}}"/>
+  </sensor>
+</mujoco>
