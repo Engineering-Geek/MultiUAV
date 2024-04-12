@@ -5,7 +5,7 @@ from mujoco import MjModel, MjData, mj_name2id, mjtSensor, mjtObj, mj_step, mj_r
 
 
 class BasePIDDrone:
-    def __init__(self, index: int, model: MjModel, data: MjData, render: bool = True):
+    def __init__(self, index: int, model: MjModel, data: MjData):
         self.done = False
         self.index = index
         self.model = model
@@ -50,7 +50,8 @@ class BasePIDDrone:
 
         self._propeller_force = np.zeros(4)
         
-        self.handler = viewer.launch_passive(model, data) if render else None
+        self.handler = viewer.launch_passive(model, data, key_callback=self.key_callback)
+        self.paused = False
         
     @property
     def pitch(self):
@@ -67,11 +68,11 @@ class BasePIDDrone:
                           1 - 2 * (self.body_quat[2] ** 2 + self.body_quat[3] ** 2))
 
     @property
-    def propeller_force(self):
+    def propeller_thrust(self):
         return self._propeller_force
 
-    @propeller_force.setter
-    def propeller_force(self, value: np.ndarray):
+    @propeller_thrust.setter
+    def propeller_thrust(self, value: np.ndarray):
         self._propeller_force = np.clip(value, 0, 1)
         self.data.ctrl[self.index * 4: (self.index + 1) * 4] = value
         
@@ -79,8 +80,20 @@ class BasePIDDrone:
         mj_resetData(self.model, self.data)
         
     def close(self):
-        if self.handler is not None:
-            self.handler.close()
+        self.handler.close()
+
+    def key_callback(self, key_code: int):
+        raise NotImplementedError
+
+    def control_step(self):
+        raise NotImplementedError
+
+    def run(self):
+        while self.handler.is_running():
+            if not self.paused:
+                mj_step(self.model, self.data)
+                self.control_step()
+            sleep(self.model.opt.timestep)
             
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
