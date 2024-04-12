@@ -45,7 +45,6 @@ def make_model(n_drones: int, objects: List[ObjectXML]) -> MjModel:
     scene.set_objects(objects)
     scene.set_scene()
     
-    print(scene.file)
     # log the contents of the scene file
     with open(scene.file, "r") as f:
         logging.info(f"Scene file contents:\n{f.read()}")
