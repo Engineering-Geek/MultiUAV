@@ -32,10 +32,10 @@
     <motor ctrlrange="0.0 1.0" ctrllimited="true"/>
     <!-- Unique class names for motors, note that the z-axis of the propellers is flipped -->
     <default class="cw">
-      <motor gear="0 0 -10 0 0 1"/>
+      <motor gear="0 0 10 0 0 -10"/>
     </default>
     <default class="ccw">
-      <motor gear="0 0 -10 0 0 -1"/>
+      <motor gear="0 0 10 0 0 10"/>
     </default>
   </default>
 
