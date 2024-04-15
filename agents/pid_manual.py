@@ -54,8 +54,8 @@ class ManualDrone:
         self.propeller_body_ids = []
         self.propeller_masses = []
         self.motor_ids = []
-        self.max_thrust = []
-        self.max_torque = []
+        self.max_thrust = np.array([])
+        self.max_torque = np.array([])
         self.drone_mass = 0
         self.I = np.zeros((3, 3))
         self.propellers = []
@@ -92,8 +92,8 @@ class ManualDrone:
     def initialize_motors(self, index):
         motor_names = [f"front_right_{index}", f"front_left_{index}", f"back_left_{index}", f"back_right_{index}"]
         self.motor_ids = [mj_name2id(self.model, mjtObj.mjOBJ_ACTUATOR, name) for name in motor_names]
-        self.max_thrust = self.model.actuator_gear[self.motor_ids[:]][:, 2]
-        self.max_torque = self.model.actuator_gear[self.motor_ids[:]][:, 5]
+        self.max_thrust = np.array(self.model.actuator_gear[self.motor_ids[:]][:, 2])
+        self.max_torque = np.array(self.model.actuator_gear[self.motor_ids[:]][:, 5])
 
     def initialize_mass_and_inertia(self):
         self.drone_mass = self.model.body_mass[self.drone_id] + sum(self.propeller_masses)
@@ -112,19 +112,21 @@ class ManualDrone:
         self.propellers = [
             Propeller(
                 *self.get_relative_position(self.drone_id, pid)[:2],  # Unpack the first two elements from the tuple
-                f if "ccw" in mj_id2name(self.model, mjtObj.mjOBJ_BODY, pid) else -f
-            ) for pid in self.propeller_body_ids
+                f[i]
+            ) for i, pid in enumerate(self.propeller_body_ids)
         ]
 
-        self.A = np.array([
+        self.A = [
             [0 for _ in range(len(self.propellers))],
             [0 for _ in range(len(self.propellers))],
             [1 for _ in range(len(self.propellers))],
             [prop.y for prop in self.propellers],
             [prop.x for prop in self.propellers],
             [prop.f for prop in self.propellers]
-        ])
+        ]
+        self.A = np.array(self.A)
         self.A_inv = np.linalg.pinv(self.A)
+
     # endregion
 
     # region Roll, Pitch, Yaw, Global and Relative Position
@@ -148,7 +150,7 @@ class ManualDrone:
     @property
     def angles(self):
         return self.roll, self.pitch, self.yaw
-    
+
     @property
     def position(self):
         return self.data.xpos[self.drone_id]
@@ -161,6 +163,7 @@ class ManualDrone:
         global_relative_position = child_pos - parent_pos
 
         return parent_rotation_matrix.T @ global_relative_position
+
     # endregion
 
     def thrust(self, global_linear_acceleration: np.ndarray,
@@ -168,58 +171,58 @@ class ManualDrone:
         rotation_matrix = self.data.xmat[self.drone_id].reshape((3, 3))
         # Step 1
         mass_accel_product = self.drone_mass * global_linear_acceleration
-        
+
         # Step 2
         inertia_accel_product = self.I @ global_angular_acceleration
-        
+
         # Step 3
         rotated_mass_accel = rotation_matrix @ mass_accel_product
         rotated_inertia_accel = rotation_matrix @ inertia_accel_product
-        
+
         # Step 4
         concatenated_array = np.concatenate([rotated_mass_accel, rotated_inertia_accel])
-        
+
         # Step 5
         thrust_values = self.A_inv @ concatenated_array
-        
+
         # Step 6
         normalized_thrust_values = np.divide(thrust_values, self.max_thrust)
-        
+
         # Step 7
         clipped_thrust_values = np.clip(normalized_thrust_values, 0, 1)
-        
+
         return clipped_thrust_values
-    
+
     def desired_global_accelerations(self, desired_target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         x_error, y_error, z_error = desired_target - self.position
         x_acceleration = self.x_pid.update(x_error)
         y_acceleration = self.y_pid.update(y_error)
         z_acceleration = self.z_pid.update(z_error)
-        
+
         # Desired orientation is such that the drone's z-axis points towards the target. This will be the target roll,
         # pitch and yaw.
-        
+
         desired_roll = np.arctan2(y_error, z_error)
         desired_pitch = np.arctan2(x_error, z_error)
         desired_yaw = 0
-        
+
         roll_error = desired_roll - self.roll
         pitch_error = desired_pitch - self.pitch
         yaw_error = desired_yaw - self.yaw
-        
+
         roll_acceleration = self.roll_pid.update(roll_error)
         pitch_acceleration = self.pitch_pid.update(pitch_error)
         yaw_acceleration = self.yaw_pid.update(yaw_error)
-        
+
         return (np.array([x_acceleration, y_acceleration, z_acceleration]),
                 np.array([roll_acceleration, pitch_acceleration, yaw_acceleration]))
-    
+
     def step(self, desired_target: np.ndarray):
         thrusts = self.thrust(*self.desired_global_accelerations(desired_target))
         for motor_id, thrust in zip(self.motor_ids, thrusts):
             self.data.ctrl[motor_id] = thrust
-            
-            
+
+
 class Simulation:
     def __init__(self, drone: ManualDrone):
         self.drone = drone
@@ -227,24 +230,24 @@ class Simulation:
         self.time = drone.data.time
         self.target = np.array([0, 0, 1])
         self.window = viewer.launch_passive(drone.model, drone.data)
-        
+
     def step(self):
         self.drone.step(self.target)
         mj_step(self.drone.model, self.drone.data)
         self.window.sync()
         sleep(self.timestep)
-        
+
     def close(self):
         self.window.close()
-        
+
     def run(self, steps: int):
         for _ in range(steps):
             self.step()
             if not self.window.is_running():
                 break
         self.close()
-        
-        
+
+
 def test_pid():
     roll_pid = PID(10, 2, 5, 1.)
     pitch_pid = PID(10, 2, 5, 1.)
@@ -252,19 +255,20 @@ def test_pid():
     x_pid = PID(10, 2, 5, 1.)
     y_pid = PID(10, 2, 5, 1.)
     z_pid = PID(10, 2, 5, 1.)
-    
+
     drone = ManualDrone(roll_pid, pitch_pid, yaw_pid, x_pid, y_pid, z_pid, 0.1, 0.1, 0.1)
     simulation = Simulation(drone)
     simulation.run(10000)
     simulation.close()
-    
+
+
 def test_dummy():
     model = make_model(1, [])
     data = MjData(model)
     data.ctrl[:] = .2
     viewer.launch(model, data)
-        
+
+
 if __name__ == "__main__":
     # test_dummy()
     test_pid()
-    
